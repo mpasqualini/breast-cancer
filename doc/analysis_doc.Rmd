@@ -1,0 +1,10 @@
+---
+title: "Breast cancer"
+author: "Mariana Pasqualini"
+date: "10/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+source("analysis.r")
+```
