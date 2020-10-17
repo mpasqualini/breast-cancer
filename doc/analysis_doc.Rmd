@@ -7,4 +7,49 @@ output: html_document
 
 ```{r setup, include=FALSE}
 source("analysis.r")
+
 ```
+
+## Correlações {.tabset}
+
+### Mean 
+
+```{r mean_pairs, echo=FALSE}
+pairs[[1]]
+```
+
+É possível ver rapidamente que algumas variáveis estão correlacionadas fortemente entre si. 
+
+Algumas variáveis apresentam correlação positiva quase perfeita (muito próximo de 1), como
+
+- **radius_mean** e **perimeter_mean** (0.998)
+
+- **radius_mean** e **area_mean** (0.987) 
+
+- **perimeter_area** e **area_mean** (0.987)
+
+Outras variáveis também apresentam uma correlação forte (acima de 0.5), como 
+
+- **concavity_mean** e **compactness_mean** (0.883)
+
+- **concave.points_mean** e **concavity_mean** (0.921)
+
+- **concave.points_mean** e **perimeter_mean** (0.851)
+
+Também dá para perceber um leve indício de correlação não-linear na variável **concave.points_mean**.
+
+### Standard Error
+
+```{r se_pairs, echo=FALSE}
+pairs[[2]]
+```
+
+As correlações do erro padrão dessas variáveis são, de maneira geral, um pouco mais baixas, mas ainda sim temos correlações fortes nas mesmas variáveis da média. 
+
+### Worst 
+
+```{r worst_pairs, echo=FALSE}
+pairs[[3]]
+```
+
+Os scatterplots dessas variáveis, que são as médias dos maiores valores, também são bem parecidas com as observadas para as médias.
