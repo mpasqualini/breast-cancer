@@ -10,11 +10,11 @@ source("analysis.r")
 
 ```
 
-## Correlações {.tabset}
+## Explorando os dados: Correlações e separabilidade das classes {.tabset}
 
-### Mean 
+### Mean
 
-```{r mean_pairs, echo=FALSE}
+```{r mean_pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
 pairs[[1]]
 ```
 
@@ -36,20 +36,40 @@ Outras variáveis também apresentam uma correlação forte (acima de 0.5), como
 
 - **concave.points_mean** e **perimeter_mean** (0.851)
 
-Também dá para perceber um leve indício de correlação não-linear na variável **concave.points_mean**.
+Quanto à separabilidade dos dados, observando os histogramas, parece que as variáveis **radius_mean**, **perimeter_mean**, **area_mean** e **concavity_mean** ajudam a melhor identificar as populações _benigno_ e _maligno_, mas ainda assim vemos sobreposições e nenhuma variável parece separar perfeitamente essas classes.
 
 ### Standard Error
 
-```{r se_pairs, echo=FALSE}
+```{r se_pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
 pairs[[2]]
 ```
 
 As correlações do erro padrão dessas variáveis são, de maneira geral, um pouco mais baixas, mas ainda sim temos correlações fortes nas mesmas variáveis da média. 
 
+Quanto à separabilidade das classes, as variáveis parecem não ajudar a identificar as duas populações.
+
 ### Worst 
 
-```{r worst_pairs, echo=FALSE}
+```{r worst_pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
 pairs[[3]]
 ```
 
 Os scatterplots dessas variáveis, que são as médias dos maiores valores, também são bem parecidas com as observadas para as médias.
+
+Por meio das variáveis **concave.points_worst**, **radius_worst** e **perimeter_worst** parecem ser as que mais ajudam separar as classes do diagnóstico.
+
+## {-}
+
+***
+
+Quando uma variável tem correlação perfeita, sabendo o valor da variável X, conseguimos prever o de Y. Com isso, podemos escrever X em função de Y (ou vice-versa). E observamos nas matrizes acima que algumas variáveis têm correlação bem alta.
+
+Trabalhar com dados altamente correlacionados: 
+
+ - Não acrescenta informação da variabilidade dos dados
+ - Os modelos podem levar mais tempo que o necessário para serem ajustados
+ 
+ Para ajudar nesse problema, vamos recorrer à técnicas de redução de dimensionalidade.
+ 
+ 
+### PCA

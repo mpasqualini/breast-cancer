@@ -1,5 +1,6 @@
 library(tidyverse)
 library(GGally)
+library(caret)
 
 source("src/functions.r")
 
@@ -27,11 +28,6 @@ summary(data_processed)
 
 data_processed %>% 
  count(diagnosis) %>% mutate(perc = (n/sum(n))*100)
-
-pairs <- 
-  data_processed %>% 
-  select(contains("mean")) %>% 
-  ggpairs(upper = list(continuous = wrap("cor", family="sans")))
 
 var_type <- c("mean", "se", "worst")
             
