@@ -1,6 +1,9 @@
 library(tidyverse)
 library(GGally)
 library(caret)
+library(printr)
+library(corrplot)
+library(factoextra)
 
 source("src/functions.r")
 
@@ -32,3 +35,22 @@ data_processed %>%
 var_type <- c("mean", "se", "worst")
             
 pairs <- pmap(list(var_type), generate_pairs, data_processed)
+
+cor_matrix <- cor(data_processed[,-1])
+corrplot(cor_matrix, method = "square", type = "upper")
+
+upper <- cor_matrix
+upper[upper.tri(cor_matrix)] <- NA 
+
+eig <- eigen(x = cor_matrix)
+
+
+plot(eig$values)
+abline(h = 1)
+
+eig$vectors[,1:6]
+
+pca <- prcomp(data_processed[,-1], center=TRUE, scale=TRUE)
+fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
+                palette = "Dark2", geom = "point", repel=TRUE,
+                legend.title="Diagnóstico", addEllipses = TRUE)

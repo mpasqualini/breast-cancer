@@ -8,13 +8,14 @@ output: html_document
 ```{r setup, include=FALSE}
 source("analysis.r")
 
+opts <- options(knitr.kable.NA = "")
 ```
 
 ## Explorando os dados: Correlações e separabilidade das classes {.tabset}
 
 ### Mean
 
-```{r mean_pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
+```{r mean-pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
 pairs[[1]]
 ```
 
@@ -40,7 +41,7 @@ Quanto à separabilidade dos dados, observando os histogramas, parece que as var
 
 ### Standard Error
 
-```{r se_pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
+```{r se-pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
 pairs[[2]]
 ```
 
@@ -50,7 +51,7 @@ Quanto à separabilidade das classes, as variáveis parecem não ajudar a identi
 
 ### Worst 
 
-```{r worst_pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
+```{r worst-pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
 pairs[[3]]
 ```
 
@@ -73,3 +74,62 @@ Trabalhar com dados altamente correlacionados:
  
  
 ### PCA
+
+Análise de componentes principais é uma técnica de fatorização de matriz em que é possível explicar (parte da) a variabilidade dos dados por meio de combinações lineares não correlacionadas dos dados originais. De maneira geral, a ideia de fatorar uma matriz é escrever uma matriz "complicada" no produto de duas matrizes "mais simples".
+
+Vamos definir as componentes principais por meio de operações matriciais, para conhecer todo o processo. 
+
+1. Estimando a matriz de correlação:
+
+O primeiro passo é estimar a matriz de correlação dos nossos dados. Na verdade, nessa etapa usa-se a matriz de covariâncias, mas um problema que pode surgir é que algumas variância são maiores que outras, e em casos muito discrepantes isso distorce as componentes principais. Para evitar isso, o procedimento é: padronizar a matriz de covariâncias e estimar as componentes a partir dessa matriz padronizada. Mas isso é o mesmo que usar a matriz de correlação e por isso vou seguir por ela.
+
+```{r cor-matrix}
+
+upper <- cor(data_processed[,-1])
+upper[upper.tri(cor_matrix)] <- NA 
+
+
+knitr::kable(round(upper[1:5, 1:5], 3),  caption = "Matriz de correlação: 5 primeiras linhas/colunas")
+```
+
+2. Obtendo os autovalores: 
+
+```{r eigenvalues, collapse=TRUE, fig.align='center'}
+eig$values
+
+plot(eig$values)
+abline(h = 1)
+```
+
+Para estimar o número de componentes principais ideal, um critério prático é observar os autovalores maiores ou iguais a 1, pois dessa forma as combinações lineares explicam a variância de uma variável original (padronizada) do dataset. Observando o scree-plot acima, é **k = 6** é o número de componentes principais adequados para explicar a estrutura da variância dos dados.
+
+3. Obtendo os autovetores e escrevendo a 1ª componente principal:
+
+
+Observando os autovetores associados aos seis autovalores identificados (apenas as 6 primeiras linhas de 30)
+
+```{r eigenvectors, echo=FALSE, warning=FALSE, message=FALSE}
+
+head(as.data.frame(eig$vectors[,1:6]))
+
+
+```
+
+
+Olhando um pouco para a teoria, a j-ésima componente principal é dada por:
+
+$$
+Ŷ_j = ê_{j1}X_{1} + ê_{j2}X_{2} + ... + ê_{jp}X_{p}
+$$
+
+E podemos escrever, para os dados do dataset em questão, a primeira componente principal da seguinte forma:
+
+$$
+Ŷ_1 = -0.2189\text{radius_mean} -0.1037\text{texture_mean} - 0.227\text{perimeter_mean} + ... - 0.132\text{fractal_dimension_worst}
+$$
+
+E assim em diante...
+
+Mas como visualizações são mais interessantes, vamos construir gráficos!
+
+#### Visualizando as componentes principais
