@@ -8,14 +8,14 @@ output: html_document
 ```{r setup, include=FALSE}
 source("analysis.r")
 
-opts <- options(knitr.kable.NA = "")
+opts <- options(knitr.kable.NA = "", fig.align='center', fig.dim=c(8, 8))
 ```
 
 ## Explorando os dados: Correlações e separabilidade das classes {.tabset}
 
 ### Mean
 
-```{r mean-pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
+```{r mean-pairs, echo=FALSE, warning=FALSE, message=FALSE}
 pairs[[1]]
 ```
 
@@ -41,7 +41,7 @@ Quanto à separabilidade dos dados, observando os histogramas, parece que as var
 
 ### Standard Error
 
-```{r se-pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
+```{r se-pairs, echo=FALSE, warning=FALSE, message=FALSE}
 pairs[[2]]
 ```
 
@@ -51,7 +51,7 @@ Quanto à separabilidade das classes, as variáveis parecem não ajudar a identi
 
 ### Worst 
 
-```{r worst-pairs, echo=FALSE, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(8, 8)}
+```{r worst-pairs, echo=FALSE, warning=FALSE, message=FALSE}
 pairs[[3]]
 ```
 
@@ -73,7 +73,7 @@ Trabalhar com dados altamente correlacionados:
  Para ajudar nesse problema, vamos recorrer à técnicas de redução de dimensionalidade.
  
  
-### PCA
+## PCA: Reduzindo a dimensão
 
 Análise de componentes principais é uma técnica de fatorização de matriz em que é possível explicar (parte da) a variabilidade dos dados por meio de combinações lineares não correlacionadas dos dados originais. De maneira geral, a ideia de fatorar uma matriz é escrever uma matriz "complicada" no produto de duas matrizes "mais simples".
 
@@ -85,16 +85,15 @@ O primeiro passo é estimar a matriz de correlação dos nossos dados. Na verdad
 
 ```{r cor-matrix}
 
-upper <- cor(data_processed[,-1])
+upper <- cor_matrix
 upper[upper.tri(cor_matrix)] <- NA 
 
-
-knitr::kable(round(upper[1:5, 1:5], 3),  caption = "Matriz de correlação: 5 primeiras linhas/colunas")
+knitr::kable(upper[1:5, 1:5],  caption = "Matriz de correlação: 5 primeiras linhas/colunas")
 ```
 
 2. Obtendo os autovalores: 
 
-```{r eigenvalues, collapse=TRUE, fig.align='center'}
+```{r eigenvalues, collapse=TRUE}
 eig$values
 
 plot(eig$values)
@@ -133,3 +132,35 @@ E assim em diante...
 Mas como visualizações são mais interessantes, vamos construir gráficos!
 
 #### Visualizando as componentes principais
+
+Bom, como a função *fviz_pca_biplot* do pacote *factoextra* faz um gráfico apropriado a partir de um objeto da classe PCA, vou utilizar a função *princomp* (do stats, que faz parte do R base) para criar esse objeto. Essa função foi escolhida porque ela usa o **teorema da decomposição espectral**, que é a abordagem teórica utilizada na descrição acima. Caso a abordagem fosse **decomposição em valores singulares** (SVD), a função apropriada seria a *prcomp* (também do *stats*).
+
+```{r pca-object}
+
+pca <- princomp(data_processed[,-1], cor = TRUE, scores = TRUE)
+
+fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
+                palette = "Dark2", geom = "point", repel=TRUE,
+                legend.title="Diagnóstico", addEllipses = TRUE) +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) 
+```
+
+A primeira componente explica 44.3% da variância dos dados. É possível observar que existem variáveis correlacionadas negativamente, como **smoothness_se** e **radius_mean**, justamente os vetores mais distantes entre si. Também vemos que há ali um agrupamento das classes Benigno/Maligno.
+
+Como o PCA foi utilizado para reduzir a dimensionalidade dos dados, os scores das 6 primeiras dimensões serão utilizados para ajustar o modelo de classificação.
+
+## Classificando
+
+Organizando os dados que serão utilizados no modelo:
+
+```{r score}
+data_scores <- 
+  cbind(data_processed$diagnosis, pca$scores[,1:6]) %>% as.data.frame() %>% 
+  rename("diagnosis" = V1) %>% clean_names()
+```
+
+### Quanto mais simples, melhor?
+
+

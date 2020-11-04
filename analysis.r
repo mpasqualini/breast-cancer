@@ -1,4 +1,5 @@
 library(tidyverse)
+library(janitor)
 library(GGally)
 library(caret)
 library(printr)
@@ -39,6 +40,7 @@ pairs <- pmap(list(var_type), generate_pairs, data_processed)
 cor_matrix <- cor(data_processed[,-1])
 corrplot(cor_matrix, method = "square", type = "upper")
 
+# PCA
 upper <- cor_matrix
 upper[upper.tri(cor_matrix)] <- NA 
 
@@ -50,7 +52,17 @@ abline(h = 1)
 
 eig$vectors[,1:6]
 
-pca <- prcomp(data_processed[,-1], center=TRUE, scale=TRUE)
+pca <- princomp(data_processed[,-1], cor = TRUE, scores = TRUE)
+
 fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
                 palette = "Dark2", geom = "point", repel=TRUE,
-                legend.title="Diagnóstico", addEllipses = TRUE)
+                legend.title="Diagnóstico", addEllipses = TRUE) +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) 
+
+# Modelling ----
+
+data_scores <- cbind(data_processed$diagnosis, pca$scores[,1:6]) %>% as.data.frame() %>% 
+                  rename("diagnosis" = V1) %>% clean_names()
+
