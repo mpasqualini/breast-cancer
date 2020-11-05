@@ -64,5 +64,11 @@ fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
 # Modelling ----
 
 data_scores <- cbind(data_processed$diagnosis, pca$scores[,1:6]) %>% as.data.frame() %>% 
-                  rename("diagnosis" = V1) %>% clean_names()
+                  rename("diagnosis" = V1) %>% clean_names() %>% mutate(diagnosis = as.factor(diagnosis))
 
+train <- data_scores %>% sample_frac(.7)
+test <- data_scores %>% anti_join(train)
+
+logit <- glm(diagnosis ~ ., family = binomial, data = train)
+
+p <- predict(logit, test, type = "response")
