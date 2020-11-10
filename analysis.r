@@ -5,6 +5,7 @@ library(caret)
 library(printr)
 library(corrplot)
 library(factoextra)
+library(pROC)
 
 source("src/functions.r")
 
@@ -25,7 +26,7 @@ str(data_processed)
 
 # Changing diagnosis to factor 
 
-data_processed <- data_processed %>% mutate(diagnosis = as.factor(diagnosis))
+data_processed <- data_processed %>% mutate(diagnosis = factor(ifelse(diagnosis == "B", "Benign", "Malignant")))
 
 # Summary 
 summary(data_processed)
@@ -63,12 +64,20 @@ fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
 
 # Modelling ----
 
-data_scores <- cbind(data_processed$diagnosis, pca$scores[,1:6]) %>% as.data.frame() %>% 
-                  rename("diagnosis" = V1) %>% clean_names() %>% mutate(diagnosis = as.factor(diagnosis))
+data_scores <- 
+  bind_cols(data_processed$diagnosis, as.data.frame(pca$scores[,1:6])) %>% 
+  clean_names() %>% 
+  rename(diagnosis = x1)
 
 train <- data_scores %>% sample_frac(.7)
 test <- data_scores %>% anti_join(train)
 
-logit <- glm(diagnosis ~ ., family = binomial, data = train)
+log_reg <- glm(diagnosis ~ ., family = binomial, data = train)
+p <- predict(logit, test, type = "response") %>% as.data.frame() %>% rename(., "prob" = ".")
 
-p <- predict(logit, test, type = "response")
+class <- cbind(p, test)
+
+class <- class %>% mutate(class = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
+
+table(class$diagnosis, class$class)
+
