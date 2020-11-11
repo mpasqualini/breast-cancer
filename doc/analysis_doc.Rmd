@@ -6,14 +6,21 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-source("analysis.r")
-
-opts <- options(knitr.kable.NA = "", fig.align='center', fig.dim=c(8, 8))
+knitr::opts_chunk$set(knitr.kable.NA = "", fig.align='center', fig.dim=c(8, 8))
 ```
+
+
+## Motivação do classificador de câncer de mama
+
+O objetivo desse notebook é aplicar técnicas de classificação aos dados do dataset _Breast cancer Wisconsin_, disponível [aqui](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29). O interesse nesse dataset vem do _outubro rosa_, mês de conscientização para informar, alertar e previnir o câncer de mama. De acordo com o Instituto Nacional de Câncer (INCA), em 2019 foram estimados 59700 novos casos da doença no Brasil.
+
+Quanto antes, melhor!
+
+Esse estudo é **apenas** para fins didáticos e de aprendizado, que não necessariamente reflete a realidade ou uma opinião médica. 
 
 ## Pacotes
 
-```{r packages}
+```{r packages, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(janitor)
 library(GGally)
@@ -23,7 +30,9 @@ library(corrplot)
 library(factoextra)
 library(pROC)
 
-set.seed(675)
+set.seed(889)
+
+source("analysis.r")
 ```
 
 
@@ -180,7 +189,7 @@ data_scores <-
 
 Dividindo os dados em conjuntos de treino e teste (70/30):
 
-```{r train-test}
+```{r train-test, message=FALSE}
 train <- data_scores %>% sample_frac(.7)
 test <- data_scores %>% anti_join(train)
 ```
@@ -194,7 +203,7 @@ logistic_model1 <- glm(diagnosis ~ ., family = binomial, data = train)
 summary(logistic_model1)
 ```
 
-A variável comp_6 parece **não** contribuir significativamente para classificarmos o diagnóstico (utilizando $\alpha = 0.05$). Um novo modelo pode ser ajustado removendo essa variável, já que variáveis irrelevantes podem deteriorar o modelo.
+A variável comp_6 parece **não** contribuir significativamente para classificarmos o diagnóstico (utilizando $\alpha = 0.05$). Um novo modelo pode ser ajustado removendo essa variável, já que variáveis irrelevantes podem deteriorar a taxa de erro do modelo.
 
 ```{r logistic-2}
 logistic_model2 <- glm(diagnosis ~ comp_1 + comp_2 + comp_3 + comp_4 + comp_5, 
@@ -207,15 +216,8 @@ summary(logistic_model2)
 
 Queremos prever _novas_ observações, então vamos lá:
 
-```{r}
-pred1 <- 
-  predict(logistic_model1, test, type = "response") %>% 
-  as.data.frame() %>% 
-  rename(., "prob" = ".") %>% 
-  bind_cols(test) %>% 
-  mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
-
-pred2 <-
+```{r predict}
+pred <-
   predict(logistic_model2, test, type = "response") %>% 
   as.data.frame() %>% 
   rename(., "prob" = ".") %>% 
@@ -234,20 +236,16 @@ olhamos para os valores como sendo a probabilidade do tumor ser maligno.
 
 #### Avaliando a acurácia do modelo
 
-```{r conf-matrix}
+```{r conf-matrix, collapse=TRUE}
+cmat <- conf_mat(table(pred$predicted, pred$diagnosis))
+autoplot(cmat, type = "heatmap")
 
-table(pred1$diagnosis, pred1$predicted)
-
-table(pred2$diagnosis, pred2$predicted)
-
+pred %>% metrics(diagnosis, predicted)
 ```
 
-|           | Precisão  | Acurácia  |
-|-----------|-----------|-----------|
-|Modelo 1   |  0.97     |  0.97     |
-|Modelo 2   |  0.95     |  0.95     |
+A acurácia do modelo é de 99.4% e o coeficiente de Kappa 98.7%, que nos indica uma concordância entre o predito e os valores verdadeiros. É importante lembrar que a acurácia é uma métrica que deve ser usada com cuidado, pois ela pode não representar bem a situação. 
 
-As métricas não estão muito distantes entre si, quando olhamos para cada modelo.É importante lembrar que a acurácia é uma métrica que deve ser usada com cuidado, pois ela pode não representar bem a situação. 
+Na área da saúde, as medidas mais utilizadas são a especificidade e a sensibilidade, comuns em testes diagnósticos. Em termos práticos, a sensibilidade avalia a capacidade do classificador detectar o tumor maligno quando ele está presente. Já a especificidade nos dá a probabilidade de um teste dar negativo (no caso, benigno) quando, de fato, não há doença. A sensibilidade do classificador é de 98,2% e a especifidade 100%.
 
 Quando estamos em um cenário de classificação, uma forma de checarmos a taxa de erro associada ao conjunto de teste é estimada da seguinte forma:
 
@@ -258,8 +256,11 @@ $Media(I(y_{0} \neq \hat{y_0}))$
 Ou seja, é a média de uma variável indicadora que assume 1 quando a classe predita é igual a classe verdadeira e 0, caso contrário. Queremos o menor valor possível para essa média. Assim, considerando o problema, temos:
 
 ```{r}
-mean(pred1$diagnosis != pred1$predicted)
-mean(pred2$diagnosis != pred2$predicted)
-
+mean(pred$diagnosis != pred$predicted)
 ```
 
+Ou seja, o modelo de regressão logística previu incorretamente, em média, apenas 0.6% das vezes.
+
+## Referências
+
+https://www.inca.gov.br/publicacoes/livros/situacao-do-cancer-de-mama-no-brasil-sintese-de-dados-dos-sistemas-de-informacao

@@ -6,32 +6,33 @@ library(printr)
 library(corrplot)
 library(factoextra)
 library(pROC)
+library(yardstick)
 
 source("src/functions.r")
 
-set.seed(675)
+set.seed(889)
 
 # Looking at data ----
 
 data_raw <- read.csv("data/data.csv")
 
-str(data_raw)
+#str(data_raw)
 
-head(data_raw)
+#head(data_raw)
 
 # Pre-processing data -----
 
 # Removing the ID column and the X column
 data_processed <- data_raw %>% select(-c(id, X))
 
-str(data_processed)
+#str(data_processed)
 
 # Changing diagnosis to factor 
 
 data_processed <- data_processed %>% mutate(diagnosis = factor(ifelse(diagnosis == "B", "Benign", "Malignant")))
 
 # Summary 
-summary(data_processed)
+#summary(data_processed)
 
 data_processed %>% 
  count(diagnosis) %>% mutate(perc = (n/sum(n))*100)
@@ -41,19 +42,13 @@ var_type <- c("mean", "se", "worst")
 pairs <- pmap(list(var_type), generate_pairs, data_processed)
 
 cor_matrix <- cor(data_processed[,-1])
-corrplot(cor_matrix, method = "square", type = "upper")
+#corrplot(cor_matrix, method = "square", type = "upper")
 
 # PCA
 upper <- cor_matrix
 upper[upper.tri(cor_matrix)] <- NA 
 
 eig <- eigen(x = cor_matrix)
-
-
-plot(eig$values)
-abline(h = 1)
-
-eig$vectors[,1:6]
 
 pca <- princomp(data_processed[,-1], cor = TRUE, scores = TRUE)
 
@@ -82,17 +77,15 @@ logistic_model2 <- glm(diagnosis ~ comp_1 + comp_2 + comp_3 + comp_4 + comp_5,
 
 summary(logistic_model2)
 
-pred1 <- 
-  predict(logistic_model1, test, type = "response") %>% 
-  as.data.frame() %>% 
-  rename(., "prob" = ".") %>% 
-  bind_cols(test) %>% 
-  mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
-
-pred2 <-
+pred <-
   predict(logistic_model2, test, type = "response") %>% 
   as.data.frame() %>% 
   rename(., "prob" = ".") %>% 
   bind_cols(test) %>% 
   mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
 
+
+cmat <- conf_mat(table(pred$predicted, pred$diagnosis))
+autoplot(cmat, type = "heatmap")
+
+mean(pred$diagnosis != pred$predicted)
