@@ -261,6 +261,20 @@ mean(pred$diagnosis != pred$predicted)
 
 Ou seja, o modelo de regressão logística previu incorretamente, em média, apenas 0.6% das vezes.
 
+ROC e AUC:
+
+```{r roc-auc, collapse=TRUE}
+predr <- prediction(pred$prob, pred$diagnosis)
+perf <- performance(predr, "tpr", "fpr")
+plot(perf)
+
+
+auc <- performance(predr, measure = 'auc') 
+auc <- unlist(slot(auc, 'y.values'))
+print(paste('AUC on Test', auc))
+```
+
+
 ## Referências
 
 https://www.inca.gov.br/publicacoes/livros/situacao-do-cancer-de-mama-no-brasil-sintese-de-dados-dos-sistemas-de-informacao

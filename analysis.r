@@ -5,7 +5,7 @@ library(caret)
 library(printr)
 library(corrplot)
 library(factoextra)
-library(pROC)
+library(ROCR)
 library(yardstick)
 
 source("src/functions.r")
@@ -89,3 +89,12 @@ cmat <- conf_mat(table(pred$predicted, pred$diagnosis))
 autoplot(cmat, type = "heatmap")
 
 mean(pred$diagnosis != pred$predicted)
+
+predr <- prediction(pred$prob, pred$diagnosis)
+perf <- performance(predr, "tpr", "fpr")
+plot(perf)
+
+
+auc <- performance(predr, measure = 'auc') 
+auc <- unlist(slot(auc, 'y.values'))
+print(paste('AUC on Test', auc))
