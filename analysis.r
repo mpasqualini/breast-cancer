@@ -9,6 +9,8 @@ library(pROC)
 
 source("src/functions.r")
 
+set.seed(675)
+
 # Looking at data ----
 
 data_raw <- read.csv("data/data.csv")
@@ -72,12 +74,25 @@ data_scores <-
 train <- data_scores %>% sample_frac(.7)
 test <- data_scores %>% anti_join(train)
 
-log_reg <- glm(diagnosis ~ ., family = binomial, data = train)
-p <- predict(logit, test, type = "response") %>% as.data.frame() %>% rename(., "prob" = ".")
+logistic_model1 <- glm(diagnosis ~ ., family = binomial, data = train)
+summary(logistic_model1)
 
-class <- cbind(p, test)
+logistic_model2 <- glm(diagnosis ~ comp_1 + comp_2 + comp_3 + comp_4 + comp_5, 
+                       family = binomial, data = train)
 
-class <- class %>% mutate(class = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
+summary(logistic_model2)
 
-table(class$diagnosis, class$class)
+pred1 <- 
+  predict(logistic_model1, test, type = "response") %>% 
+  as.data.frame() %>% 
+  rename(., "prob" = ".") %>% 
+  bind_cols(test) %>% 
+  mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
+
+pred2 <-
+  predict(logistic_model2, test, type = "response") %>% 
+  as.data.frame() %>% 
+  rename(., "prob" = ".") %>% 
+  bind_cols(test) %>% 
+  mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
 

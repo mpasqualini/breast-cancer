@@ -11,6 +11,22 @@ source("analysis.r")
 opts <- options(knitr.kable.NA = "", fig.align='center', fig.dim=c(8, 8))
 ```
 
+## Pacotes
+
+```{r packages}
+library(tidyverse)
+library(janitor)
+library(GGally)
+library(caret)
+library(printr)
+library(corrplot)
+library(factoextra)
+library(pROC)
+
+set.seed(675)
+```
+
+
 ## Explorando os dados: Correlações e separabilidade das classes {.tabset}
 
 ### Mean
@@ -157,10 +173,93 @@ Organizando os dados que serão utilizados no modelo:
 
 ```{r score}
 data_scores <- 
-  cbind(data_processed$diagnosis, pca$scores[,1:6]) %>% as.data.frame() %>% 
-  rename("diagnosis" = V1) %>% clean_names()
+  bind_cols(data_processed$diagnosis, as.data.frame(pca$scores[,1:6])) %>% 
+  clean_names() %>% 
+  rename(diagnosis = x1)
 ```
 
-### Quanto mais simples, melhor?
+Dividindo os dados em conjuntos de treino e teste (70/30):
 
+```{r train-test}
+train <- data_scores %>% sample_frac(.7)
+test <- data_scores %>% anti_join(train)
+```
+
+### Modelo 01: Regressão logística
+
+#### Ajustando o modelo
+
+```{r logistic-1}
+logistic_model1 <- glm(diagnosis ~ ., family = binomial, data = train)
+summary(logistic_model1)
+```
+
+A variável comp_6 parece **não** contribuir significativamente para classificarmos o diagnóstico (utilizando $\alpha = 0.05$). Um novo modelo pode ser ajustado removendo essa variável, já que variáveis irrelevantes podem deteriorar o modelo.
+
+```{r logistic-2}
+logistic_model2 <- glm(diagnosis ~ comp_1 + comp_2 + comp_3 + comp_4 + comp_5, 
+                       family = binomial, data = train)
+
+summary(logistic_model2)
+```
+
+#### E como fica no conjunto de teste?
+
+Queremos prever _novas_ observações, então vamos lá:
+
+```{r}
+pred1 <- 
+  predict(logistic_model1, test, type = "response") %>% 
+  as.data.frame() %>% 
+  rename(., "prob" = ".") %>% 
+  bind_cols(test) %>% 
+  mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
+
+pred2 <-
+  predict(logistic_model2, test, type = "response") %>% 
+  as.data.frame() %>% 
+  rename(., "prob" = ".") %>% 
+  bind_cols(test) %>% 
+  mutate(predicted = as.factor(ifelse(prob > 0.5, "Malignant", "Benign")))
+
+```
+
+As probabilidades são dadas na forma $P(Y = 1 | X)$, e olhando para a dummy definida como 1
+
+```{r}
+contrasts(data_scores$diagnosis)
+```
+
+olhamos para os valores como sendo a probabilidade do tumor ser maligno.
+
+#### Avaliando a acurácia do modelo
+
+```{r conf-matrix}
+
+table(pred1$diagnosis, pred1$predicted)
+
+table(pred2$diagnosis, pred2$predicted)
+
+```
+
+|           | Precisão  | Acurácia  |
+|-----------|-----------|-----------|
+|Modelo 1   |  0.97     |  0.97     |
+|Modelo 2   |  0.95     |  0.95     |
+
+As métricas não estão muito distantes entre si, quando olhamos para cada modelo.É importante lembrar que a acurácia é uma métrica que deve ser usada com cuidado, pois ela pode não representar bem a situação. 
+
+Quando estamos em um cenário de classificação, uma forma de checarmos a taxa de erro associada ao conjunto de teste é estimada da seguinte forma:
+
+
+$Media(I(y_{0} \neq \hat{y_0}))$
+
+
+Ou seja, é a média de uma variável indicadora que assume 1 quando a classe predita é igual a classe verdadeira e 0, caso contrário. Queremos o menor valor possível para essa média. Assim, considerando o problema, temos:
+
+```{r}
+mean(pred1$diagnosis != pred1$predicted)
+mean(pred2$diagnosis != pred2$predicted)
+
+```
 
