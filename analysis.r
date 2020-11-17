@@ -7,6 +7,7 @@ library(corrplot)
 library(factoextra)
 library(ROCR)
 library(yardstick)
+library(randomForest)
 
 source("src/functions.r")
 
@@ -61,6 +62,7 @@ fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
 
 # Modelling ----
 
+# Logistic Regression ----
 data_scores <- 
   bind_cols(data_processed$diagnosis, as.data.frame(pca$scores[,1:6])) %>% 
   clean_names() %>% 
@@ -98,3 +100,30 @@ plot(perf)
 auc <- performance(predr, measure = 'auc') 
 auc <- unlist(slot(auc, 'y.values'))
 print(paste('AUC on Test', auc))
+
+# Bagging ----
+
+bag <- randomForest(diagnosis ~ ., data = train, mtry = ncol(train) - 1, importance=TRUE)
+
+pred_bag <-
+  predict(bag, newdata = test[,-1]) %>%
+  as.data.frame() %>% 
+  rename(., "pred" = ".") %>% 
+  bind_cols(test)
+
+cmat_bag <- conf_mat(table(pred_bag$pred, pred_bag$diagnosis))
+autoplot(cmat_bag, type = "heatmap")
+
+# Random Forests ----
+
+rf <- randomForest(diagnosis ~ ., data = train, mtry = sqrt(ncol(train) - 1), importance=TRUE)
+
+
+pred_rf <-
+  predict(rf, newdata = test[,-1]) %>%
+  as.data.frame() %>% 
+  rename(., "pred" = ".") %>% 
+  bind_cols(test)
+
+cmat_rf <- conf_mat(table(pred_rf$pred, pred_rf$diagnosis))
+autoplot(cmat_rf, type = "heatmap")

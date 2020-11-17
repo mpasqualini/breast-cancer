@@ -30,8 +30,6 @@ library(corrplot)
 library(factoextra)
 library(pROC)
 
-set.seed(889)
-
 source("analysis.r")
 ```
 
@@ -48,21 +46,21 @@ pairs[[1]]
 
 Algumas variáveis apresentam correlação positiva quase perfeita (muito próximo de 1), como
 
-- **radius_mean** e **perimeter_mean** (0.998)
+- `radius_mean` e `perimeter_mean` (0.998)
 
-- **radius_mean** e **area_mean** (0.987) 
+- `radius_mean` e `area_mean` (0.987) 
 
-- **perimeter_area** e **area_mean** (0.987)
+- `perimeter_area` e `area_mean` (0.987)
 
 Outras variáveis também apresentam uma correlação forte (acima de 0.5), como 
 
-- **concavity_mean** e **compactness_mean** (0.883)
+- `concavity_mean` e `compactness_mean` (0.883)
 
-- **concave.points_mean** e **concavity_mean** (0.921)
+- `concave.points_mean` e `concavity_mean` (0.921)
 
-- **concave.points_mean** e **perimeter_mean** (0.851)
+- `concave.points_mean` e `perimeter_mean` (0.851)
 
-Quanto à separabilidade dos dados, observando os histogramas, parece que as variáveis **radius_mean**, **perimeter_mean**, **area_mean** e **concavity_mean** ajudam a melhor identificar as populações _benigno_ e _maligno_, mas ainda assim vemos sobreposições e nenhuma variável parece separar perfeitamente essas classes.
+Quanto à separabilidade dos dados, observando os histogramas, parece que as variáveis `radius_mean`, `perimeter_mean`, `area_mean` e `concavity_mean` ajudam a melhor identificar as populações _benigno_ e _maligno_, mas ainda assim vemos sobreposições e nenhuma variável parece separar perfeitamente essas classes.
 
 ### Standard Error
 
@@ -82,11 +80,9 @@ pairs[[3]]
 
 Os scatterplots dessas variáveis, que são as médias dos maiores valores, também são bem parecidas com as observadas para as médias.
 
-Por meio das variáveis **concave.points_worst**, **radius_worst** e **perimeter_worst** parecem ser as que mais ajudam separar as classes do diagnóstico.
+Por meio das variáveis `concave.points_worst`, `radius_worst` e `perimeter_worst` parecem ser as que mais ajudam separar as classes do diagnóstico.
 
 ## {-}
-
-***
 
 Quando uma variável tem correlação perfeita, sabendo o valor da variável X, conseguimos prever o de Y. Com isso, podemos escrever X em função de Y (ou vice-versa). E observamos nas matrizes acima que algumas variáveis têm correlação bem alta.
 
@@ -172,7 +168,7 @@ fviz_pca_biplot(pca, col.ind = data_processed$diagnosis, col="black",
         panel.grid.minor = element_blank()) 
 ```
 
-A primeira componente explica 44.3% da variância dos dados. É possível observar que existem variáveis correlacionadas negativamente, como **smoothness_se** e **radius_mean**, justamente os vetores mais distantes entre si. Também vemos que há ali um agrupamento das classes Benigno/Maligno.
+A primeira componente explica 44.3% da variância dos dados. É possível observar que existem variáveis correlacionadas negativamente, como `smoothness_se` e `radius_mean`, justamente os vetores mais distantes entre si. Também vemos que há ali um agrupamento das classes Benigno/Maligno.
 
 Como o PCA foi utilizado para reduzir a dimensionalidade dos dados, os scores das 6 primeiras dimensões serão utilizados para ajustar o modelo de classificação.
 
@@ -203,7 +199,7 @@ logistic_model1 <- glm(diagnosis ~ ., family = binomial, data = train)
 summary(logistic_model1)
 ```
 
-A variável comp_6 parece **não** contribuir significativamente para classificarmos o diagnóstico (utilizando $\alpha = 0.05$). Um novo modelo pode ser ajustado removendo essa variável, já que variáveis irrelevantes podem deteriorar a taxa de erro do modelo.
+A variável `comp_6` parece **não** contribuir significativamente para classificarmos o diagnóstico (utilizando $\alpha = 0.05$). Um novo modelo pode ser ajustado removendo essa variável, já que variáveis irrelevantes podem deteriorar a taxa de erro do modelo.
 
 ```{r logistic-2}
 logistic_model2 <- glm(diagnosis ~ comp_1 + comp_2 + comp_3 + comp_4 + comp_5, 
@@ -237,15 +233,18 @@ olhamos para os valores como sendo a probabilidade do tumor ser maligno.
 #### Avaliando a acurácia do modelo
 
 ```{r conf-matrix, collapse=TRUE}
-cmat <- conf_mat(table(pred$predicted, pred$diagnosis))
+
+metrics_lg <- confusionMatrix(pred$predicted, pred$diagnosis)
+
+cmat <- conf_mat(metrics_lg$table)
 autoplot(cmat, type = "heatmap")
 
-pred %>% metrics(diagnosis, predicted)
+metrics_lg
 ```
 
-A acurácia do modelo é de 99.4% e o coeficiente de Kappa 98.7%, que nos indica uma concordância entre o predito e os valores verdadeiros. É importante lembrar que a acurácia é uma métrica que deve ser usada com cuidado, pois ela pode não representar bem a situação. 
+A acurácia do modelo é de `r metrics_lg$overall[1]` e o coeficiente de Kappa `r metrics_lg$overall[2]`, que nos indica uma concordância entre o predito e os valores verdadeiros. É importante lembrar que a acurácia é uma métrica que deve ser usada com cuidado, pois ela pode não representar bem a situação. 
 
-Na área da saúde, as medidas mais utilizadas são a especificidade e a sensibilidade, comuns em testes diagnósticos. Em termos práticos, a sensibilidade avalia a capacidade do classificador detectar o tumor maligno quando ele está presente. Já a especificidade nos dá a probabilidade de um teste dar negativo (no caso, benigno) quando, de fato, não há doença. A sensibilidade do classificador é de 98,2% e a especifidade 100%.
+Na área da saúde, as medidas mais utilizadas são a especificidade e a sensibilidade, comuns em testes diagnósticos. Em termos práticos, a sensibilidade avalia a capacidade do classificador detectar o tumor maligno quando ele está presente. Já a especificidade nos dá a probabilidade de um teste dar negativo (no caso, benigno) quando, de fato, não há doença. A sensibilidade do classificador é de `r metrics_lg$byClass[1]`e a especifidade `r metrics_lg$byClass[2]`.
 
 Quando estamos em um cenário de classificação, uma forma de checarmos a taxa de erro associada ao conjunto de teste é estimada da seguinte forma:
 
@@ -259,7 +258,7 @@ Ou seja, é a média de uma variável indicadora que assume 1 quando a classe pr
 mean(pred$diagnosis != pred$predicted)
 ```
 
-Ou seja, o modelo de regressão logística previu incorretamente, em média, apenas 0.6% das vezes.
+Ou seja, o modelo de regressão logística previu incorretamente, em média, apenas `r round((mean(pred$diagnosis != pred$predicted)*100), 3)`% das vezes.
 
 ROC e AUC:
 
@@ -270,11 +269,122 @@ plot(perf)
 
 
 auc <- performance(predr, measure = 'auc') 
-auc <- unlist(slot(auc, 'y.values'))
-print(paste('AUC on Test', auc))
+print(paste('AUC on Test', unlist(slot(auc, 'y.values'))))
+```
+
+### Modelo 02 - Árvores de decisão: Bagging
+
+A ideia desta abordagem é fazer um bootstrap do conjunto de treino, ajustar árvores individuais para cada um dos datasets obtidos e depois juntá-los. Aqui estamos usando todos os preditores (6 variáveis). Essa técnica surgiu para redução de variância.
+
+
+#### Ajustando o modelo
+```{r bag-1}
+bag <- randomForest(diagnosis ~ ., data = train, mtry = ncol(train) - 1, importance=TRUE)
+bag
+```
+
+#### E como fica para novas observações?
+
+```{r bag-2}
+pred_bag <-
+  predict(bag, newdata = test[,-1]) %>%
+  as.data.frame() %>% 
+  rename(., "pred" = ".") %>% 
+  bind_cols(test)
+```
+
+#### Avaliando a acurácia do modelo
+
+```{r bag-conf-matrix}
+cmat_bag <- confusionMatrix(pred_bag$pred, pred_bag$diagnosis)
+conf_bag <- conf_mat(cmat_bag$table)
+
+autoplot(conf_bag, type = "heatmap")
+
+cmat_bag
+```
+
+```{r roc-auc-bag, collapse=TRUE}
+predprob <- predict(bag, newdata = test[,-1], type = "prob")[,2]
+
+predr_bag <- prediction(predprob, pred_bag$diagnosis)
+perf_bag <- performance(predr_bag, "tpr", "fpr")
+plot(perf_bag)
+
+
+auc_bag <- performance(predr_bag, measure = 'auc') 
+print(paste('AUC on Test', unlist(slot(auc_bag, 'y.values'))))
 ```
 
 
+
+## Modelo 03 - Árvores de decisão: Random Forests
+
+A ideia desta abordagem é também fazer um bootstrap do conjunto de treino, ajustar árvores individuais para cada um dos datasets obtidos e depois juntá-los. A diferença aqui é que não são usados todos os preditores, apenas um subconjunto. Isso permite que as árvores ajustadas sejam bem diferentes entre si, pois a variável mais importante não é sempre usada para criar a separação da árvore.
+
+Em geral, usa-se o número de preditores $m = sqrt(p)$, sendo p o número de preditores originais.
+
+
+#### Ajustando o modelo
+```{r rf-1}
+rf <- randomForest(diagnosis ~ ., data = train, mtry = sqrt(ncol(train) - 1), importance=TRUE)
+rf
+```
+
+#### E como fica para novas observações?
+
+```{r rf-2}
+pred_rf <-
+  predict(rf, newdata = test[,-1]) %>%
+  as.data.frame() %>% 
+  rename(., "pred" = ".") %>% 
+  bind_cols(test)
+```
+
+
+#### Avaliando a acurácia do modelo
+
+```{r rf-conf-matrix}
+cmat_rf <- confusionMatrix(pred_rf$pred, pred_rf$diagnosis)
+conf_rf <- conf_mat(cmat_rf$table)
+
+autoplot(conf_rf, type = "heatmap")
+
+cmat_rf
+```
+
+```{r roc-auc-rf}
+predprob_rf <- predict(rf, newdata = test[,-1], type = "prob")[,2]
+
+predr_rf <- prediction(predprob_rf, pred_rf$diagnosis)
+perf_rf <- performance(predr_rf, "tpr", "fpr")
+plot(perf_rf)
+
+
+auc_rf <- performance(predr_rf, measure = 'auc') 
+print(paste('AUC on Test', unlist(slot(auc_rf, 'y.values'))))
+```
+
+## Concluindo
+
+```{r}
+print(paste('Logistic Regression: AUC on Test', unlist(slot(auc, 'y.values'))))
+print(paste('Bagging: AUC on Test', unlist(slot(auc_bag, 'y.values'))))
+print(paste('Random Forests: AUC on Test', unlist(slot(auc_rf, 'y.values'))))
+```
+
+O modelo que apresentou a maior área abaixo da curva foi o mais simples, a **regressão logística**. É o modelo mais restrito apresentado, mas também é o que permite uma interpretabilidade maior que os mais sofisticados. Também vale notar que o **random forest** apresentou um desempenho bem próximo.
+
+Pretendo estudar formas de contornar as classes desbalanceadas (62.7/37.3) desse problema que, apesar de existirem problemas com classes mais díspares, a diferença aqui pode sim desviar a classificação para a classe majoritária.
+
 ## Referências
 
-https://www.inca.gov.br/publicacoes/livros/situacao-do-cancer-de-mama-no-brasil-sintese-de-dados-dos-sistemas-de-informacao
+- https://www.inca.gov.br/publicacoes/livros/situacao-do-cancer-de-mama-no-brasil-sintese-de-dados-dos-sistemas-de-informacao
+
+- https://www.kaggle.com/gpreda/breast-cancer-prediction-from-cytopathology-data/report
+
+- https://www.kaggle.com/mirichoi0218/classification-breast-cancer-or-not-with-15-ml/comments
+
+- _An Introduction to Statistical Learning: With Applications in R_ por Robert Tibshirani e Trevor Hastie
+
+- _Análise de dados através de métodos de estatística multivariada_ por Sueli Aparecida Mingoti
